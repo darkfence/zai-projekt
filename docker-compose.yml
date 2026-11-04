@@ -1,0 +1,95 @@
+# ZAI 26Z – „Serie pomiarowe”: NGINX (TLS) → Flask/Gunicorn → PostgreSQL + InfluxDB 1.8
+# Konfiguracja w pliku .env (wzór: .env.example).
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-zai}
+      POSTGRES_USER: ${POSTGRES_USER:-zai}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?ustaw POSTGRES_PASSWORD w .env}
+    command: ["postgres", "-c", "shared_buffers=32MB", "-c", "max_connections=30"]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    mem_limit: 160m
+
+  influxdb:
+    image: influxdb:1.8-alpine
+    restart: unless-stopped
+    environment:
+      INFLUXDB_DB: ${INFLUX_DB:-zai}
+      INFLUXDB_HTTP_AUTH_ENABLED: "true"
+      INFLUXDB_ADMIN_USER: ${INFLUX_ADMIN_USER:-admin}
+      INFLUXDB_ADMIN_PASSWORD: ${INFLUX_ADMIN_PASSWORD:?ustaw INFLUX_ADMIN_PASSWORD w .env}
+      INFLUXDB_USER: ${INFLUX_USER:-zai}
+      INFLUXDB_USER_PASSWORD: ${INFLUX_PASSWORD:?ustaw INFLUX_PASSWORD w .env}
+      INFLUXDB_REPORTING_DISABLED: "true"
+      INFLUXDB_DATA_INDEX_VERSION: tsi1
+      INFLUXDB_DATA_CACHE_MAX_MEMORY_SIZE: 64m
+      INFLUXDB_DATA_QUERY_LOG_ENABLED: "false"
+      INFLUXDB_HTTP_LOG_ENABLED: "false"
+    volumes:
+      - influxdata:/var/lib/influxdb
+    mem_limit: 256m
+
+  app:
+    build: ./backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-zai}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-zai}
+      MEASUREMENT_STORE: influx
+      INFLUX_HOST: influxdb
+      INFLUX_PORT: "8086"
+      INFLUX_DB: ${INFLUX_DB:-zai}
+      INFLUX_USER: ${INFLUX_USER:-zai}
+      INFLUX_PASSWORD: ${INFLUX_PASSWORD}
+      SECRET_KEY: ${SECRET_KEY:?ustaw SECRET_KEY w .env}
+      TOKEN_TTL: ${TOKEN_TTL:-3600}
+      PROXY_COUNT: "1"
+      SECURITY_HEADERS: "0"
+      ERROR_LOG: /app/logs/errors.log
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      influxdb:
+        condition: service_started
+    volumes:
+      - applogs:/app/logs
+    mem_limit: 256m
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:?ustaw DOMAIN w .env}
+    volumes:
+      - ./nginx/templates:/etc/nginx/templates:ro
+      - ./nginx/static:/usr/share/nginx/html:ro
+      - ./certbot/conf:/etc/letsencrypt:ro
+      - ./certbot/www:/var/www/certbot:ro
+    depends_on:
+      - app
+    mem_limit: 64m
+
+  certbot:
+    image: certbot/certbot:v2.11.0
+    profiles: ["tools"]
+    volumes:
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+
+volumes:
+  pgdata:
+  influxdata:
+  applogs:
