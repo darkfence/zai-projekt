@@ -1,0 +1,66 @@
+# Szablon przetwarzany przez envsubst obrazu nginx (podstawiane: ${DOMAIN}).
+server_tokens off;
+
+limit_req_zone $binary_remote_addr zone=login:1m rate=30r/m;
+
+upstream zai_app {
+    server app:8000;
+    keepalive 8;
+}
+
+# HTTP: wyzwanie ACME i przekierowanie na HTTPS
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    server_name ${DOMAIN};
+
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+    location / {
+        return 301 https://${DOMAIN}$request_uri;
+    }
+}
+
+server {
+    listen 443 ssl default_server;
+    listen [::]:443 ssl default_server;
+    http2 on;
+    server_name ${DOMAIN};
+
+    ssl_certificate     /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers off;
+    ssl_session_cache shared:SSL:5m;
+    ssl_session_timeout 1d;
+
+    client_max_body_size 64k;
+
+    gzip on;
+    gzip_types application/json application/problem+json text/css application/javascript image/svg+xml;
+
+    # Nagłówki bezpieczeństwa (jedyne źródło – Flask ich nie dubluje)
+    add_header Strict-Transport-Security "max-age=31536000" always;
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "DENY" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
+
+    location = /api/auth/login {
+        limit_req zone=login burst=30 nodelay;
+        limit_req_status 429;
+        include /etc/nginx/conf.d/proxy_params.inc;
+    }
+
+    location /api/ {
+        include /etc/nginx/conf.d/proxy_params.inc;
+    }
+
+    # Aplikacja jednostronicowa (E2: build Vue)
+    location / {
+        root /usr/share/nginx/html;
+        try_files $uri $uri/ /index.html;
+    }
+}
