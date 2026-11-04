@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Pogoda w domu i ogrodzie – serie pomiarowe z czujników IoT (ZAI 26Z).">
+  <title>Serie pomiarowe – pogoda w domu i ogrodzie</title>
+  <link rel="stylesheet" href="/vendor/bootstrap.min.css">
+  <link rel="stylesheet" href="/app.css">
+</head>
+<body>
+  <header class="bg-primary-subtle border-bottom">
+    <div class="container py-3">
+      <h1 class="h3 mb-0">Serie pomiarowe</h1>
+      <p class="mb-0 text-body-secondary">Pogoda w domu i ogrodzie – dane z czujników IoT</p>
+    </div>
+  </header>
+
+  <main class="container py-4" id="main">
+    <div class="alert alert-info" role="note">
+      Etap E1: dostępne jest REST API (<code>/api</code>). Pełny interfejs z wykresem i tabelą pojawi się w etapie E2.
+    </div>
+
+    <h2 class="h5">Serie</h2>
+    <p id="status" class="text-body-secondary" role="status" aria-live="polite">Ładowanie danych…</p>
+    <div class="table-responsive">
+      <table class="table table-striped align-middle" id="series-table" hidden>
+        <caption class="visually-hidden">Lista serii pomiarowych</caption>
+        <thead>
+          <tr>
+            <th scope="col">Seria</th>
+            <th scope="col">Jednostka</th>
+            <th scope="col">Przedział</th>
+            <th scope="col" class="text-end">Liczba wyników</th>
+            <th scope="col">Ostatni wynik</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </main>
+
+  <footer class="container pb-4 small text-body-secondary">
+    ZAI 26Z – projekt „Serie pomiarowe”. API: <a href="/api/series">/api/series</a>,
+    <a href="/api/measurements?limit=20">/api/measurements</a>.
+  </footer>
+
+  <script src="/app.js" defer></script>
+</body>
+</html>

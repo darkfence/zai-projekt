@@ -1,0 +1,15 @@
+.swatch {
+  display: inline-block;
+  width: 0.9rem;
+  height: 0.9rem;
+  margin-right: 0.4rem;
+  border: 1px solid rgba(0, 0, 0, 0.4);
+  border-radius: 2px;
+  vertical-align: -0.1rem;
+}
+
+a:focus-visible,
+button:focus-visible {
+  outline: 3px solid #0a58ca;
+  outline-offset: 2px;
+}
