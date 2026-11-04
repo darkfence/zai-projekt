@@ -74,10 +74,10 @@ services:
     environment:
       DOMAIN: ${DOMAIN:?ustaw DOMAIN w .env}
     volumes:
-      - ./nginx/templates:/etc/nginx/templates:ro
-      - ./nginx/static:/usr/share/nginx/html:ro
-      - ./certbot/conf:/etc/letsencrypt:ro
-      - ./certbot/www:/var/www/certbot:ro
+      - ./nginx/templates:/etc/nginx/templates:ro,z
+      - ./nginx/static:/usr/share/nginx/html:ro,z
+      - ./certbot/conf:/etc/letsencrypt:ro,z
+      - ./certbot/www:/var/www/certbot:ro,z
     depends_on:
       - app
     mem_limit: 64m
@@ -86,8 +86,8 @@ services:
     image: certbot/certbot:v2.11.0
     profiles: ["tools"]
     volumes:
-      - ./certbot/conf:/etc/letsencrypt
-      - ./certbot/www:/var/www/certbot
+      - ./certbot/conf:/etc/letsencrypt:z
+      - ./certbot/www:/var/www/certbot:z
 
 volumes:
   pgdata:
