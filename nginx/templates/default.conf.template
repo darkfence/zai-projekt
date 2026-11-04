@@ -58,6 +58,10 @@ server {
         include /etc/nginx/conf.d/proxy_params.inc;
     }
 
+    # Opcjonalne lokalizacje spoza repozytorium (np. Chronograf na VPS),
+    # montowane przez docker-compose.override.yml; brak plików = brak zmian.
+    include /etc/nginx/local/*.locations;
+
     # Aplikacja jednostronicowa (E2: build Vue)
     location / {
         root /usr/share/nginx/html;
